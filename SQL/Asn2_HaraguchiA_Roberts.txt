@@ -1,0 +1,283 @@
+SQL> --
+SQL> --
+SQL> -- ---------------------------------------------------------
+SQL> --  COMP 2714
+SQL> --  SET 2C
+SQL> --  Assignment Asn01
+SQL> --  Haraguchi, Akemi    A00899045
+SQL> --  Roberts,   Cameron  A00966003
+SQL> --  email: aharaguchi@my.bcit.ca
+SQL> --  email: croberts65@my.bcit.ca
+SQL> -- **Ask Keith re Q6: is it good practice to show all the guest info? Does it matter? In a real-world setting would it
+SQL> -- be more obvious? Or is this just common sense?
+SQL> -- ---------------------------------------------------------
+SQL> --
+SQL> --
+SQL> ALTER SESSION SET NLS_DATE_FORMAT='YYYY-MM-DD';
+
+Session altered.
+
+SQL> --
+SQL> --
+SQL> SELECT SYSDATE
+  2  FROM DUAL;
+
+SYSDATE                                                                         
+----------                                                                      
+2017-09-30                                                                      
+
+SQL> --
+SQL> --
+SQL> -- ---------------------------------------------------------
+SQL> --
+SQL> --Q1. For all hotels in London, list hotel name, hotelAddress, room type and price of all Single, Double or Family
+SQL> --rooms with a price below 100.00 per night, in descending order of hotelName, ascending order of price and descending
+SQL> --order oftype. List each result entry only once.
+SQL> --
+SQL> --
+SQL> SELECT DISTINCT Hotel.hotelName, Hotel.hotelAddress, Room.type, Room.price
+  2  	 FROM Hotel
+  3  	     INNER JOIN Room
+  4  		 ON Hotel.hotelNo = Room.hotelNo
+  5  	     WHERE Room.price < 100.00
+  6  		     AND Hotel.hotelAddress   LIKE '%London%'
+  7  		     AND Room.type	     LIKE 'Deluxe'
+  8  	     ORDER BY Hotel.hotelName DESC,
+  9  		      Room.price      ASC,
+ 10  		      Room.type   DESC;
+
+no rows selected
+
+SQL> --
+SQL> --
+SQL> --Q2. List the Vancouver hotel bookings for which no dateTo has been specified. List the hotelName, hotelAddress,
+SQL> --room number, dateFrom and dateTo. Note: Hotels in West and North Vancouver should be excluded.
+SQL> --
+SQL> --
+SQL> SELECT Hotel.hotelName, Hotel.hotelAddress, Booking.roomNo, Booking.dateFrom, Booking.dateTo
+  2  	 FROM Hotel
+  3  	     INNER JOIN Booking
+  4  		 ON Hotel.hotelNo = Booking.hotelNo
+  5  	     WHERE Booking.dateTo	 IS NULL
+  6  	     AND   Hotel.hotelAddress	 LIKE '%Vancouver'
+  7  	     AND   Hotel.hotelAddress	 NOT LIKE '%North%'
+  8  	     AND   Hotel.hotelAddress	 NOT LIKE '%West%';
+
+HOTELNAME        HOTELADDRESS                                 ROOMNO DATEFROM   
+---------------- ---------------------------------------- ---------- ---------- 
+DATETO                                                                          
+----------                                                                      
+Meridian Hotel   789 Howe Street, Vancouver                       10 2017-09-21 
+                                                                                
+                                                                                
+
+SQL> --
+SQL> --
+SQL> --Q3. What is the average price of a room for each hotel? List it with the hotelName and in hotelName order.
+SQL> --
+SQL> --
+SQL> SELECT Hotel.hotelName, ROUND(AVG(CAST(Room.price AS FLOAT)),2) AS averagePrice
+  2  	 FROM Room
+  3  	     INNER JOIN Hotel
+  4  		 ON Room.hotelNo = Hotel.hotelNo
+  5  	     GROUP BY Hotel.hotelName
+  6  	     ORDER BY Hotel.hotelName ASC;
+
+HOTELNAME        AVERAGEPRICE                                                   
+---------------- ------------                                                   
+Delta Inn                  75                                                   
+Grosvenor Hotel         69.62                                                   
+Grosvenor Inn             105                                                   
+Holiday Inn             41.43                                                   
+Imperial Palace           115                                                   
+Meridian Hotel         100.83                                                   
+Park Royal Hotel           67                                                   
+The Ramada              162.5                                                   
+
+8 rows selected.
+
+SQL> --
+SQL> --
+SQL> --Q4.What is the total revenue per night from all double rooms? Do this for each hotel and in one single query.
+SQL> --List the total revenue with the hotelName, and only if the total revenue is between $500 to $1000 [in SQL context].
+SQL> --List in hotelName order.
+SQL> --
+SQL> --
+SQL> SELECT Hotel.hotelName, SUM(Room.price) AS dblRev
+  2  	 FROM Room
+  3  	   INNER JOIN Hotel
+  4  	    ON Room.hotelNo = Hotel.hotelNo
+  5  	    WHERE Room.type = 'Double'
+  6  	 GROUP BY Hotel.hotelName
+  7  	 HAVING SUM(Room.price) BETWEEN 500 AND 1000
+  8  	 ORDER BY Hotel.hotelName ASC;
+
+HOTELNAME            DBLREV                                                     
+---------------- ----------                                                     
+Delta Inn               900                                                     
+Park Royal Hotel        688                                                     
+The Ramada              600                                                     
+
+SQL> --
+SQL> --
+SQL> -- Q5. List the type and price of all rooms at the hotels with 'Grosvenor' in name, including the number of rooms for
+SQL> --each combination of type and price. List only if the number of rooms for each type and price combination is greater than 3.
+SQL> --
+SQL> -- explanation:
+SQL> --1: Make a custom table from Room, with the hotel name, room types. Give it an alias
+SQL> -- 	     => count every row in the rooms table as every row is a room
+SQL> --2: Join the Room table with Hotel, to satisfy the conditions
+SQL> --3. Set condition to only list hotels with the name 'Grosvenor' in it
+SQL> --4. Group by price, type, and hotelName - this means there won't be doubles of this combination.
+SQL> --5. outerquery: now trefer to the custom table by the alias, slect evereything from it
+SQL> --6: where condition to satisfy the number of rooms requirement.
+SQL> --
+SQL> --
+SQL> SELECT *
+  2  FROM
+  3  	     (SELECT hotelName, type, price, COUNT(*) AS numberOfRooms
+  4  	     FROM Room
+  5  		     INNER JOIN Hotel
+  6  			     ON Hotel.hotelNo = Room.hotelNo
+  7  	     WHERE hotelName LIKE '%Grosvenor%'
+  8  	     GROUP BY price, type, hotelName)
+  9  WHERE numberofRooms > 3;
+
+HOTELNAME        TYPE          PRICE NUMBEROFROOMS                              
+---------------- -------- ---------- -------------                              
+Grosvenor Inn    Deluxe          155             5                              
+Grosvenor Inn    Single           45             5                              
+Grosvenor Hotel  Single           40             4                              
+Grosvenor Hotel  Double           55             4                              
+Grosvenor Inn    Double           95             5                              
+Grosvenor Inn    Family          125             5                              
+
+6 rows selected.
+
+SQL> --
+SQL> --
+SQL> --Q6. List all guests currently staying at the Grosvenor Hotel. Include the roomNo in the output.
+SQL> --Use 2017-09-29 as the current date.
+SQL> --
+SQL> --
+SQL> SELECT guestName, roomNo
+  2  FROM Booking
+  3  	     INNER JOIN Guest
+  4  		     ON Booking.guestNo = Guest.guestNo
+  5  	     INNER JOIN Hotel
+  6  		     ON Booking.hotelNo = Hotel.hotelNo
+  7  WHERE dateFrom < DATE'2017-09-29'
+  8  	     AND (dateTo IS NULL
+  9  		     OR dateTo > DATE'2017-09-29')
+ 10  	     AND hotelName = 'Grosvenor Hotel'
+ 11  GROUP BY guestName, roomNo;
+
+GUESTNAME           ROOMNO                                                      
+--------------- ----------                                                      
+Sundeep Mohan            4                                                      
+Peter Kennedy            5                                                      
+Ivan Pratt               3                                                      
+
+SQL> --
+SQL> --
+SQL> --Q7. What is the total income from bookings for the Grosvenor Hotel today?  Do this question for each of the
+SQL> -- hotels with 'Grosvenor' in name. Use 2017-09-29 as current date
+SQL> --
+SQL> --
+SQL> SELECT hotelName, SUM(price) AS totalIncome
+  2  FROM Room
+  3  	     INNER JOIN Booking
+  4  		     ON Room.roomNo = Booking.roomNo
+  5  			     AND Room.hotelNo = Booking.hotelNo
+  6  	     INNER JOIN Hotel
+  7  		     ON Room.hotelNo = Hotel.hotelNo
+  8  WHERE dateFrom <= DATE'2017-09-29'
+  9  	     AND (dateTo IS NULL
+ 10  		     OR dateTo > DATE'2017-09-29')
+ 11  	     AND hotelName LIKE '%Grosvenor%'
+ 12  GROUP BY hotelName;
+
+HOTELNAME        TOTALINCOME                                                    
+---------------- -----------                                                    
+Grosvenor Inn             95                                                    
+Grosvenor Hotel          135                                                    
+
+SQL> --
+SQL> --
+SQL> --Q8. What is the total income for each room type from bookings for each hotel (listing hotel names) today?
+SQL> -- Use 2017-09-29 as today's date. List in ascending order of hotel name and room type.
+SQL> --
+SQL> --
+SQL> SELECT hotelName, type, SUM(price) AS totalIncome
+  2  FROM Room
+  3  	     INNER JOIN Booking
+  4  		     ON Room.hotelNo = Booking.hotelNo
+  5  			     AND Room.roomNo = Booking.roomNo
+  6  	     INNER JOIN Hotel
+  7  		     ON Room.hotelNo = Hotel.hotelNo
+  8  WHERE dateFrom <= DATE'2017-09-29'
+  9  	     AND (dateTo IS NULL
+ 10  		     OR dateTo > DATE'2017-09-29')
+ 11  GROUP BY hotelName, type
+ 12  ORDER BY hotelName ASC,
+ 13  		     type ASC;
+
+HOTELNAME        TYPE     TOTALINCOME                                           
+---------------- -------- -----------                                           
+Grosvenor Hotel  Double            55                                           
+Grosvenor Hotel  Single            80                                           
+Grosvenor Inn    Double            95                                           
+Holiday Inn      Single            35                                           
+Meridian Hotel   Deluxe           150                                           
+
+SQL> --
+SQL> --
+SQL> --Q9.List the new hotels that are still under construction, i.e. no room data in the database as yet f.r these hotels.
+SQL> --
+SQL> --
+SQL> SELECT hotelName
+  2  FROM Hotel
+  3  	     INNER JOIN Room
+  4  		     ON Hotel.hotelNo = Room.hotelNo
+  5  WHERE roomNo IS NULL
+  6  	     AND type IS NULL
+  7  	     AND price IS NULL;
+
+no rows selected
+
+SQL> --
+SQL> --
+SQL> --Q10. What is the percentage of hotels still under construction? List the total number of hotels, number of hotels
+SQL> --completed, the number of hotels under construction, and the percentage of hotels under construction. NO SUBQUERY;
+SQL> --use OUTER JOIN.
+SQL> --
+SQL> --explanation:
+SQL> --NOTE: When you outer join, all the columns are retained.
+SQL> -- 1. Counting distinct hotel numbers from Hotel table will give you the number of total hotels : 10
+SQL> -- 2. Count all of the distinct hotels by hotelNo. This results in 10.
+SQL> -- 	     Count the number of indistinct hotel rooms, then subtract the number of indistinct rooms. This results in 2.
+SQL> -- 	     Subtract 2 from 1, and you get 10 - 2 : 8.  AKA completed hotels.
+SQL> -- 3. Count all of the indistince hotels by hotelNo. This results in 123.
+SQL> -- 	     Count all of the indistinct hotel rooms by roomNo. This results in 121.
+SQL> -- 	     Subtract 2 from 1, and you get the number of hotels under construction: 2.
+SQL> -- 4. Get the answer from number 3, then divide it by a total number of hotels * 100 = 20%. ( 2 / 10 * 100)
+SQL> --
+SQL> --
+SQL> --
+SQL> 
+SQL> SELECT DISTINCT COUNT(DISTINCT Hotel.hotelNo) AS totalHotels,
+  2  				     COUNT(DISTINCT Hotel.hotelNo) - (COUNT(Hotel.hotelNo) - COUNT(roomNo)) AS completedHotels,
+  3  				     COUNT(Hotel.hotelNo) - COUNT(roomNo) AS underConstruction,
+  4  				     (COUNT(Hotel.hotelNo) - COUNT(roomNo)) / COUNT(DISTINCT hotelName) * 100 AS constPercent
+  5  FROM Hotel
+  6  	     FULL OUTER JOIN Room
+  7  		     ON Hotel.hotelNo = Room.hotelNo;
+
+TOTALHOTELS COMPLETEDHOTELS UNDERCONSTRUCTION CONSTPERCENT                      
+----------- --------------- ----------------- ------------                      
+         10               8                 2           20                      
+
+SQL> --
+SQL> --
+SQL> --
+SQL> SPOOL OFF
